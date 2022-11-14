@@ -15,7 +15,7 @@
 #define _delay wait_us(200);
 
 DigitalOut mosi(PB_15);
-DigitalOut miso(PB_14);
+DigitalIn miso(PB_14);
 DigitalOut sck(PB_13);
 DigitalOut cs(PB_12);
 DigitalOut wp(PB_11);
@@ -37,13 +37,13 @@ void jedec_read_id();
 
 int main()
 {
-    printf("Hello World\n\r",);
-    // unsigned char data;
-    // char addr[3] = {0};
-    // addr[0] = 0x00;
-    // addr[1] = 0x20;
-    // addr[2] = 0x08;
-    // data = 0;
+    printf("Hello World3\n\r");
+    unsigned char data;
+    char addr[3] = {0};
+    addr[0] = 0x00;
+    addr[1] = 0x20;
+    addr[2] = 0x08;
+    data = 0;
     hold = 1;
     wp = 1;
 
@@ -52,28 +52,27 @@ int main()
     jedec_read_id();
 
     // spi_init();
+    data = read_status_register();
+    printf("read status register 0x%02x\n\r", data);
 
-    // data = read_status_register();
-    // printf("read status register 0x%02x\n\r", data);
+    chip_erase();
+    _delay
 
-    // chip_erase();
-    // _delay
+        data = read_status_register();
+    printf("read status register 0x%02x\n\r", data);
+    _delay
 
-    //     data = read_status_register();
-    // printf("read status register 0x%02x\n\r", data);
-    // _delay
+    // write_status_register(0x02);
 
-    //     // write_status_register(0x02);
+    write_enable();
 
-    // write_enable();
+    data = read_status_register();
+    printf("read status register 0x%02x\n\r", data);
 
-    // data = read_status_register();
-    // printf("read status register 0x%02x\n\r", data);
+    write(addr, 0x12);
 
-    // write(addr, 0x12);
-
-    // data = read(addr);
-    // printf("read data 0x%02x\n\r", data);
+    data = read(addr);
+    printf("read data 0x%02x\n\r", data);
 }
 
 void spi_write(unsigned char addr)
@@ -101,16 +100,15 @@ unsigned char read_addr()
     unsigned char data = 0;
     for (int i = 0; i < 8; i++)
     {
-        data = data << 1 | mosi;
-
-        // if (mosi == 1)
-        // {
-        //     data = data | 0x01;
-        // }
-        // else
-        // {
-        //     data = data | 0x00;
-        // }
+        data = data << 1;
+        if (miso.read() == 1)
+        {
+            data = data | 0x01;
+        }
+        else
+        {
+            data = data | 0x00;
+        }
         _delay
             sck = 1;
         _delay
@@ -147,30 +145,32 @@ void write_status_register(unsigned char bit)
     cs = 1;
 }
 
-// unsigned char read_status_register()
-// {
-//     unsigned char data;
-//     cs = 0;
-//     _delay
-//         spi_write(RDSR);
-//     data = spi_write(0xFF);
-//     cs = 1;
-//     _delay return data;
-// }
+unsigned char read_status_register()
+{
+    unsigned char data;
+    cs = 0;
+    _delay
+        spi_write(RDSR);
+    spi_write(0xFF);
+    data = read_addr();
+    cs = 1;
+    _delay return data;
+}
 
-// unsigned char read(char addr[])
-// {
-//     unsigned char data;
-//     cs = 0;
-//     _delay
-//         spi_write(Read);
-//     spi_write(addr[0]);
-//     spi_write(addr[1]);
-//     spi_write(addr[2]);
-//     data = spi_write(0x00);
-//     cs = 1;
-//     _delay return data;
-// }
+unsigned char read(char addr[])
+{
+    unsigned char data;
+    cs = 0;
+    _delay
+        spi_write(Read);
+    spi_write(addr[0]);
+    spi_write(addr[1]);
+    spi_write(addr[2]);
+    spi_write(0x00);
+    data = read_addr();
+    cs = 1;
+    _delay return data;
+}
 
 void write_enable()
 {
@@ -208,15 +208,21 @@ void write(char addr[], int value)
 
 void jedec_read_id()
 {
+
+    unsigned char data[3] = {};
+
     cs = 0;
     _delay
 
         spi_write(JEDEC_ID);
     spi_write(0x00);
-    printf("0x%02x\n\r", read_addr());
-    printf("0x%02x\n\r", read_addr());
-    printf("0x%02x\n\r", read_addr());
+
+    data[0] = read_addr();
+    data[1] = read_addr();
+    data[2] = read_addr();
 
     cs = 1;
     _delay
+
+        printf("JEDEC : 0x%02x, 0x%02x, 0x%02x\n\r", data[0], data[1], data[2]);
 }
