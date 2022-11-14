@@ -21,8 +21,6 @@ DigitalOut cs(PB_12);
 DigitalOut wp(PB_11);
 DigitalOut hold(PB_10);
 
-int a = 0x00;
-
 // void spi_init();
 void spi_write(unsigned char addr);
 unsigned char read_addr();
@@ -37,29 +35,26 @@ void jedec_read_id();
 
 int main()
 {
-    printf("Hello World3\n\r");
+    printf("Hello World3 \n\r");
     unsigned char data;
+    char value[4] = {'t','e','s','t'};
+
     char addr[3] = {0};
     addr[0] = 0x00;
-    addr[1] = 0x20;
-    addr[2] = 0x08;
+    addr[1] = 0x00;
+    addr[2] = 0x00;
     data = 0;
     hold = 1;
     wp = 1;
 
-    cs = 1;
-
-    jedec_read_id();
-
-    // spi_init();
     data = read_status_register();
-    printf("read status register 0x%02x\n\r", data);
+    printf("read status register at start 0x%02x\n\r", data);
 
     chip_erase();
     _delay
 
         data = read_status_register();
-    printf("read status register 0x%02x\n\r", data);
+    printf("read status register after chip erase 0x%02x\n\r", data);
     _delay
 
     // write_status_register(0x02);
@@ -68,11 +63,33 @@ int main()
 
     data = read_status_register();
     printf("read status register 0x%02x\n\r", data);
+    _delay
 
-    write(addr, 0x12);
+    // write(addr, value[1]);
 
-    data = read(addr);
-    printf("read data 0x%02x\n\r", data);
+    // data = read(addr);
+    // printf("read data 0x%02x\n\r", data);
+
+    // data = read(addr);
+    // printf("read data %c\n\r", data);
+
+    // chip_erase();
+    // write_enable();
+
+    for(int j = 0; j<= sizeof(value); j++){
+        write_enable();
+
+        write(addr, value[j]);
+        data = read(addr);
+        printf("%c", data);
+        addr[2] += 1;
+    }
+    printf("\n\r");
+
+    // for(int j = 0; j <= 7; j++){
+    //     data = read(addr);
+    //     printf("read data %c\n\r", data);
+    // }
 }
 
 void spi_write(unsigned char addr)
@@ -104,26 +121,21 @@ unsigned char read_addr()
         if (miso.read() == 1)
         {
             data = data | 0x01;
+            
         }
         else
         {
             data = data | 0x00;
+            
         }
         _delay
             sck = 1;
         _delay
             sck = 0;
     }
+    
     return data;
 }
-
-// void spi_init()
-// {
-//     cs = 1;
-//     _delay
-//         spi.format(8, 3);
-//     spi.frequency(1000000);
-// }
 
 void enable_write_status_register()
 {
@@ -166,10 +178,10 @@ unsigned char read(char addr[])
     spi_write(addr[0]);
     spi_write(addr[1]);
     spi_write(addr[2]);
-    spi_write(0x00);
     data = read_addr();
     cs = 1;
-    _delay return data;
+    _delay
+        return data;
 }
 
 void write_enable()
@@ -193,7 +205,7 @@ void chip_erase()
     _delay
 }
 
-void write(char addr[], int value)
+void write(char addr[], int value) // 값 잘 들어감.
 {
     cs = 0;
     _delay
